@@ -21,6 +21,9 @@ def get_config_dir() -> Path:
 def get_system_config_path() -> Path:
     return get_config_dir() / CONFIG_FILE_NAME
 
+def get_data_dir() -> Path:
+    return Path(user_data_dir("ai-agent"))
+
 def _parse_toml(path:Path):
     try:
         with open(path , "rb") as f:
