@@ -1,15 +1,15 @@
 from datetime import datetime
-
+import platform
 from config.config import Config
+from tool.base import Tool
 
-def get_system_prompt(
-        config : Config,
-):
+def get_system_prompt(config : Config, user_memory: str | None = None , tool : list[Tool] = None) -> str:
 
     parts = []
 
     parts.append(_get_identity_section())
     parts.append(_get_agents_md_section())
+    parts.append(_get_environment_section(config))
     parts.append(_get_security_section())
     parts.append(_get_operational_section())
 
@@ -18,6 +18,12 @@ def get_system_prompt(
 
     if config.user_instructions:
         parts.append(_get_user_instructions_section(config.user_instructions))
+
+    if user_memory:
+        parts.append(_get_memory_section(user_memory))
+
+    if tool:
+        parts.append()
 
     return "\n\n".join(parts)
 
@@ -168,3 +174,57 @@ def _get_user_instructions_section(instructions: str) -> str:
 The user has provided the following custom instructions:
 
 {instructions}"""
+
+
+def _get_memory_section(memory : str) -> str:
+    """Generate user memory section."""
+    return f"""# Remembered Context
+
+    The following information has been stored from previous interactions:
+
+    {memory}
+
+    Use this information to personalize your responses and maintain consistency."""
+
+
+def _get_environment_section(config : Config) -> str:
+    """Generate the environment section"""
+    now = datetime.now()
+    os_info = f"{platform.system()} {platform.release()}"
+
+    return f"""# Environment
+
+- **Current Date**: {now.strftime("%A, %B %d, %Y")}
+- **Operating System**: {os_info}
+- **Working Directory**: {config.cwd}
+- **Shell**: {_get_shell_info()}
+
+The user has granted you access to run tools in service of their request. Use them when needed."""
+
+def _get_shell_info() -> str:
+    """Get shell information based on platform."""
+    import os 
+    import sys 
+
+    if sys.platform == "drawin":
+        return os.environ.get("SHELL","/bin/zsh")
+    elif sys.platform == "win32":
+        return "PowerShell/cmd.exe"
+
+    else:
+        return os.environ.get("SHELL", "/bin/bash")
+
+def _get_tool_guidelines_section(tools : list[Tool]) -> str:
+     """Generate tool usage guidelines.""" 
+     regular_tools = [t for t in tools if not t.name.startswith("subagent_")]
+     subagent_tools= [t for t in tools if t.name.startswith("subagent_")]
+
+     guidelines = """# Tool Usage Guidelines
+
+You have access to the following tools to accomplish your tasks:
+
+"""
+
+    
+
+
