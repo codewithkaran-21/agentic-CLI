@@ -36,7 +36,15 @@ class ToolRegistry:
         return None
 
     def get_tools(self) -> list[Tool]:
-        return list(self._tools.values())
+        tools : list[Tool] = []
+        for tool in self._tools.values():
+            tools.append(tool)
+
+        if self.config.allowed_tools:
+            allowed_set = set(self.config.allowed_tools)
+            tools = [t for t in tools if t.name in allowed_set]
+            
+        return tools
 
     def get_schema(self) -> list[dict[str,Any]]:
         return [tool.to_openai_schema() for tool in self.get_tools()]

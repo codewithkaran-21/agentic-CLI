@@ -1,10 +1,14 @@
+from agent.agent import Agent
+from agent.events import AgentEventType
 from config.config import Config
 from dataclasses import dataclass
-from tool.base import Tool
+from tool.base import Tool, ToolInvocation, ToolResult
+from pydantic import Field
+import asyncio
 
 
 class SubAgentParams:
-    goal : str 
+    goal : str = Field(...,description="The specific task or goal for the subagent to accomplish")
 
 @dataclass
 class SubAgentDefinition:
@@ -24,3 +28,85 @@ class SubagentTool(Tool):
     @property
     def name(self)->str:
         return f"subagent_{self.definition.name}"
+
+    @property
+    def description(self) -> str:
+        return f"subagent_{self.definiton.description}"
+
+    schema = SubAgentParams
+
+    async def execute(self, invocation : ToolInvocation) -> ToolResult:
+        params = SubAgentParams(**invocation.params)
+        if not params.goal:
+            return ToolResult.error_result("No goal specified for subagent")
+
+        config_dict = self.config.to_dict()
+        config_dict['max_turns'] = self.definiton.max_turns
+
+        if self.definiton.allowed_tools:
+            config_dict['allowed_tools'] = self.definiton.allowed_tools
+
+        subagent_config = Config(**config_dict)
+
+        prompt = f"""You are a specialized sub-agent with a specific task to complete.
+
+        {self.definition.goal_prompt}
+
+        YOUR TASK:
+        {params.goal}
+
+        IMPORTANT:
+        - Focus only on completing the specified task
+        - Do not engage in unrelated actions
+        - Once you have completed the task or have the answer, provide your final response
+        - Be concise and direct in your output
+        """
+
+        tool_calls = []
+        final_resoponse = None
+        error = None
+        terminate_response = None
+
+        try:
+            async with Agent(subagent_config) as agent:
+                deadline = (
+                    asyncio.get_event_loop().time() + self.definiton.timeout_seconds
+                )
+                async for event in agent.run(prompt):
+
+                    if asyncio.get_event_loop().time() > deadline:
+                        terminate_response = "timeout"
+                        final_response = "Sub-agent timed out"
+                        break
+
+                    if event.type == AgentEventType.TOOL_CALL_START:
+                        tool_calls.append(event.data.get("name"))
+                    elif event.type == AgentEventType.TEXT_COMPLETE:
+                        final_resoponse = event.data.get("content")
+                    elif event.type == AgentEventType.AGENT_END:
+                        if final_resoponse is None:
+                            final_resoponse = event.data.get("response")
+                    elif event.type == AgentEventType.AGENT_ERROR:
+                        terminate_response = "error"
+                        error = event.data.get("error","Unknown")
+                        final_response = f"Sub-agent error: {error}"
+                        break
+
+        except Exception as e:
+            terminate_response = "error"
+            error = str(e)
+            final_response = f"Sub-agent failed: {e}"
+
+        result = f"""Sub-agent '{self.definiton.name}' completed.
+        Termination: {terminate_response}
+        Tool called: {','.join(tool_calls) if tool_calls else 'None'}
+        Result:
+        {final_resoponse or 'No Response'}
+        """
+
+        if error:
+            return ToolResult.error_result(result)
+
+        return ToolResult.success_result(result)
+    
+
