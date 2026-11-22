@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Any
-
+from tool.subagents import SubagentTool, get_default_subagent_definitions
 from config.config import Config
 from tool.base import Tool, ToolInvocation, ToolResult 
 import logging
@@ -92,6 +92,7 @@ class ToolRegistry:
 def create_default_registry(config:Config) -> ToolRegistry:
     registry = ToolRegistry(config)
     for tool_class in get_all_builtin_tools():
-        registry.register(tool_class())
-
+        registry.register(tool_class(config))
+    for subagent_def in get_default_subagent_definitions():
+        registry.register(SubagentTool(config,subagent_def))
     return registry

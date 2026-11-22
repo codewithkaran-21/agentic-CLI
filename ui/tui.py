@@ -514,20 +514,22 @@ class TUI:
                 )
             )
 
-        if error and not success:
-            blocks.append(Text(error,style='error'))
-            output_display = truncate_text(output , self.config.model_name,self._max_block_tokens)
+        else:
 
-            if output_display.strip():
-                blocks.append(Syntax(
-                    output_display,
-                    "error",
-                    theme="monokai",
-                    word_wrap = True
-                ))
+            if error and not success:
+                blocks.append(Text(error,style='error'))
+                output_display = truncate_text(output , self.config.model_name,self._max_block_tokens)
 
-            else:
-                blocks.append(Text("(no output)",style="muted"))
+                if output_display.strip():
+                    blocks.append(Syntax(
+                        output_display,
+                        "error",
+                        theme="monokai",
+                        word_wrap = True
+                    ))
+
+                else:
+                    blocks.append(Text("(no output)",style="muted"))
         
         if truncated:
             blocks.append(Text("Note: tool output was truncated", style="warning"))

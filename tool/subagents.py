@@ -1,5 +1,3 @@
-from agent.agent import Agent
-from agent.events import AgentEventType
 from config.config import Config
 from dataclasses import dataclass
 from tool.base import Tool, ToolInvocation, ToolResult
@@ -36,6 +34,9 @@ class SubagentTool(Tool):
     schema = SubAgentParams
 
     async def execute(self, invocation : ToolInvocation) -> ToolResult:
+        from agent.agent import Agent
+        from agent.events import AgentEventType
+        
         params = SubAgentParams(**invocation.params)
         if not params.goal:
             return ToolResult.error_result("No goal specified for subagent")

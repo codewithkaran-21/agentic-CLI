@@ -4,6 +4,7 @@ from config.config import Config
 from prompts.system import get_system_prompt
 from dataclasses import dataclass, field
 
+from tool.base import Tool
 from utils.text import count_tokens
 
 @dataclass
@@ -29,7 +30,7 @@ class MessageItem:
         return result
 
 class ContextManager:
-    def __init__(self , config: Config , user_memory : str | None) -> None:
+    def __init__(self , config: Config , user_memory : str | None , tools : list[Tool] | None) -> None:
         self._system_prompt = get_system_prompt(config , user_memory)
         self.config = config
         self._model_name = "nvidia/nemotron-3.5-super-vl:free"
