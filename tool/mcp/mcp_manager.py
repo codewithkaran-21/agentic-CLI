@@ -1,6 +1,8 @@
 from config.config import Config
-from tool.mcp.client import MCPClient
+from tool.mcp.client import MCPClient, MCPSeverStatus
 import asyncio
+
+from tool.register import ToolRegistry
 
 class MCPManager:
     def __init__(self, config : Config):
@@ -32,4 +34,14 @@ class MCPManager:
         await asyncio.gather(*connection_tasks, return_exceptions=True)
         self._initialized = True
         
+
+    def register_tools(self , registry : ToolRegistry) -> int:
+        count = 0 
+
+        for client in self._client.values():
+            if client.status != MCPSeverStatus.CONNECTED:
+                continue
+
+            for tool_info in client.tools:
+                registry.register_mcp_tool()
 
