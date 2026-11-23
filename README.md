@@ -1,4 +1,4 @@
-# agentic-Ide
+# agentic-CLI
 
 A terminal-first, agentic coding assistant built in Python for working inside a local repository. The project aims to pair an LLM with a small toolchain that can read files, inspect the workspace, make edits, and execute shell commands under a controlled safety layer.
 
