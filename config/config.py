@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel , Field 
+from pydantic import BaseModel , Field, model_validator 
 
 
 class ModelConfig(BaseModel):
@@ -10,12 +10,34 @@ class ModelConfig(BaseModel):
     temperature : float = Field(default=1,ge=0.0,le=2.0)
     context_window : int = 256_000
 
+class MCPServerConfig(BaseModel):
+    enabled : bool = True
+    startup_timeout_sec : float = 10 
+
+    command : str | None  = None 
+    args : list[str] = Field(default_factory=list)
+    env : dict[str,str] = Field(default_factory=dict)
+    cwd : Path | None = None 
+
+    url : str | None = None 
+    
+    @model_validator(mode='after')
+    def validate_transport(self) -> MCPServerConfig:
+        has_command = self.command is not None
+        has_url = self.url is not None
+
+        if not has_command and not has_url:
+            raise ValueError("MCP Server must have either 'command' (stdio) or 'url' (http/sse)")
+        
+        if has_command and has_url:
+            raise ValueError("MCP Server can not have both 'command' (stdio) and 'url' (http/sse)")
+
 class Config(BaseModel):
     model : ModelConfig = Field(default_factory=ModelConfig)
     cwd :  Path = Field(default_factory=Path.cwd)
 
     max_turns : int = 100
-
+    mcp_servers : dict[str,MCPServerConfig] = Field(default_factory=dict)
     allowed_tools : list[str] | None = Field(...,description="If set, only these tools are availabile for the agent")
 
     max_tool_output_tokens : int = 50000

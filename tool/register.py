@@ -4,7 +4,7 @@ from tool.subagents import SubagentTool, get_default_subagent_definitions
 from config.config import Config
 from tool.base import Tool, ToolInvocation, ToolResult 
 import logging
-from tool.builtin import ReadFileTool , get_all_builtin_tools
+from tool.builtin import get_all_builtin_tools
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 class ToolRegistry:
     def __init__(self , config : Config):
         self._tools : dict[str, Tool] = {}
+        self._mcp_tools : dict[str, Tool] = {}
         self.config = config
 
     def register(self , tool : Tool) -> None:
@@ -21,6 +22,10 @@ class ToolRegistry:
         self._tools[tool.name] = tool
 
         logger.debug(f"Registered Tool {tool.name}")
+
+    def register_mcp_tools(self , name : str , tool : Tool) -> None:
+        self._mcp_tools[name] = tool
+        logger.debug(f"Registered MCP Tool: {name}")
 
     def unregister_tool(self,name :str) -> bool:
         if name in self._tools:
