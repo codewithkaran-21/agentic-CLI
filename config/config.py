@@ -32,6 +32,8 @@ class MCPServerConfig(BaseModel):
         if has_command and has_url:
             raise ValueError("MCP Server can not have both 'command' (stdio) and 'url' (http/sse)")
 
+        return self
+
 class Config(BaseModel):
     model : ModelConfig = Field(default_factory=ModelConfig)
     cwd :  Path = Field(default_factory=Path.cwd)

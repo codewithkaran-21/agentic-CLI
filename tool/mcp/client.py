@@ -44,7 +44,8 @@ class MCPClient:
                 command=self.config.command,
                 args=list(self.config.args),
                 env=env,
-                cwd=str(self.config.cwd or self.cwd)
+                cwd=str(self.config.cwd or self.cwd),
+                log_file= Path(os.devnull)
             )
 
         else :
@@ -86,4 +87,18 @@ class MCPClient:
 
         self._tools.clear()
         self.status = MCPSeverStatus.DISCONENCTED
-        
+
+    async def call_tool(self , tool_name : str , arguments : dict[str,Any]):
+        if not self._client or self._client.status != MCPSeverStatus.CONNECTED:
+            raise RuntimeError(f"Not connected to server {self.name}")
+
+        result = await self._client.call_tool(tool_name,arguments)
+
+        output = []
+        for item in result.content:
+            if hasattr(item,"text"):
+                output.append(item.text)
+            else:
+                output.append(str(item))
+
+        return output

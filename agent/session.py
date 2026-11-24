@@ -7,6 +7,7 @@ from config.config import Config
 from config.loader import get_data_dir
 from context.manager import ContextManager
 from tool.discovery import ToolDiscoveryManager
+from tool.mcp.mcp_manager import MCPManager
 from tool.register import ToolRegistry, create_default_registry
 
 
@@ -15,8 +16,9 @@ class Session:
         self.config = config
         self.client = LLMClient(config=config)
         self.tool_registry = create_default_registry(config)
-        self.context_manager = ContextManager(config=config,user_memory=self._load_memory(),tools=self.tool_registry.get_tools())
+        self.context_manager : ContextManager | None = None
         self.discovery_manger = ToolDiscoveryManager(config,registry=self.tool_registry)
+        self.mcp_manager = MCPManager(self.config)
         self.session_id = str(uuid.uuid4())
         self.created_at = datetime.now()
         self.updated_at = datetime.now()
@@ -28,6 +30,15 @@ class Session:
         # 20 turn first session 
         # another session have 10 sessions 
         # come back to first session -> 20 
+
+    async def initialize(self) -> None:
+        await self.mcp_manager.initialize()
+        self.mcp_manager.register_tools(self.tool_registry)
+        self.context_manager = ContextManager(
+            config = self.config,
+            user_memory=self._load_memory(),
+            tools = self.tool_registry.get_tools()
+        )
 
     def _load_memory(self) -> str | None:
         data_dir = get_data_dir()
