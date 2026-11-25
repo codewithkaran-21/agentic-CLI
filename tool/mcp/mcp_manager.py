@@ -52,3 +52,9 @@ class MCPManager:
                 )
                 registry.register_mcp_tool()
 
+    async def shutdown(self) -> None:
+        disconnection_task = [client.disconnect() for client in self._clients.values()]
+
+        await asyncio.gather(*disconnection_task , return_exceptions=True)
+        self._clients.clear()
+        self._initialized = False
