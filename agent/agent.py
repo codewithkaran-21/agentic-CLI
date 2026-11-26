@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 
 from agent.events import AgentEvent , AgentEventType
 from agent.session import Session
-from client.response import StreamEventType, ToolCall, ToolResultMessage
+from client.response import StreamEventType, TokenUsage, ToolCall, ToolResultMessage
 from config.config import Config 
 from tool.register import create_default_registry
 
@@ -36,8 +36,18 @@ class Agent:
         
             self.session.increament_turn()
             response_text = ""
+
+            if self.session.context_manager.needs_compression():
+                summary , usage =  await self.session.chat_compactor.compress.compress(
+                    self.session.context_manager
+                )
+
+                if summary:
+                    self.session.context_manager.add_usage(usage)
+                    self.session.context_manager._latest_usage(usage)
             tool_schemas = self.session.tool_registry.get_schema()
             tool_calls : list[ToolCall] = []
+            usage : TokenUsage | None = None
 
             async for event in self.session.client.chat_completion(self.session.context_manager .get_messages(), tools = tool_schemas if tool_schemas else None ,stream=True):
                 if event.type == StreamEventType.TEXT_DELTA:
@@ -72,7 +82,9 @@ class Agent:
                 yield AgentEvent.text_complete(response_text)
 
             if not tool_calls:
-                return
+                if usage:
+                    self.session.context_manager.set_latest_usage(usage)
+                    self.session.context_manager.add_usage(usage)
 
             tool_call_results : list[ToolResultMessage] = []
 
@@ -108,6 +120,10 @@ class Agent:
                     tool_result.tool_call_id,
                     tool_result.content
                 )
+
+            if usage:
+                self.session.context_manager.set_latest_usage(usage)
+                self.session.context_manager.add_usage(usage)
 
         yield AgentEvent.agent_error(f"Maximum turns ({max_turns}) reached")
     async def __aenter__(self) -> Agent:

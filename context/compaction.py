@@ -62,7 +62,7 @@ class ChatCompactor:
             return "\n\n---\n\n".join(output)
 
 
-    async def cpompress(self,context_manager : ContextManager) -> tuple[str | None , TokenUsage | None]:
+    async def compress(self,context_manager : ContextManager) -> tuple[str | None , TokenUsage | None]:
 
         messages = context_manager.get_messages()
 

@@ -1,5 +1,6 @@
 from typing import Any
 
+from client.response import TokenUsage
 from config.config import Config
 from prompts.system import get_system_prompt
 from dataclasses import dataclass, field
@@ -35,6 +36,8 @@ class ContextManager:
         self.config = config
         self._model_name = "nvidia/nemotron-3.5-super-vl:free"
         self._messages : list[MessageItem] = []
+        self._latest_usage = TokenUsage()
+        self._total_usage = TokenUsage()
 
     def add_user_message(self , content : str) -> None:
         item = MessageItem(
@@ -79,3 +82,13 @@ class ContextManager:
         for item in self._messages:
             messages.append(item.to_dict())
         return messages
+
+    def needs_compression(self) -> bool:
+        context_limit = self.config.context_window
+        current_tokens = self._latest_usage.total_tokens
+
+    def set_latest_usage(self,usage : TokenUsage):
+        self._latest_usage = usage
+
+    def add_usage(self , usage : TokenUsage):
+        self._total_usage += usage
