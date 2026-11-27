@@ -43,8 +43,10 @@ class Agent:
                 )
 
                 if summary:
+                    self.session.context_manager.replace_with_summary(summary)
                     self.session.context_manager.add_usage(usage)
                     self.session.context_manager._latest_usage(usage)
+                    
             tool_schemas = self.session.tool_registry.get_schema()
             tool_calls : list[ToolCall] = []
             usage : TokenUsage | None = None
