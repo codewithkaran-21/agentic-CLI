@@ -148,7 +148,7 @@ class Tool(abc.ABC):
             ToolKind.MCP
         }
 
-    async def get_confirmation(self , invocation : ToolInvocation) -> ToolInvocation | None : 
+    async def get_confirmation(self , invocation : ToolInvocation) -> ToolConfirmation | None : 
         if not self.is_mutating(invocation.params):
             return None 
         return ToolConfirmation(
